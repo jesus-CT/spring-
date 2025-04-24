@@ -1,10 +1,9 @@
 package com.example.demo.repositories;
 
-import com.example.demo.models.Cita;
+import com.example.demo.models.Diagnostico;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CitaRepository extends JpaRepository<Cita, Long> {
-
+public interface DiagnosticoRepository extends JpaRepository<Diagnostico, Long> {
 }

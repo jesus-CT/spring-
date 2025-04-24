@@ -1,6 +1,11 @@
 package com.example.demo.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToOne;
+
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -26,6 +31,12 @@ public class Cita {
 
     @Column(nullable = true)
     private int attribute11;
+
+    @NotNull(message = "El diagnóstico es obligatorio")
+    @Valid
+    @OneToOne(mappedBy = "cita", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Diagnostico diagnostico;
 }
 
 
