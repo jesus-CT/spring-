@@ -1,4 +1,4 @@
-INSERT INTO usuario (nombre, email) VALUES
+INSERT INTO ejemplo (nombre, email) VALUES
                                         ('Juan Pérez',      'juan.perez@exampl2e.com'),
                                         ('María García',    'maria.garcia@exampl2e.com'),
                                         ('Carlos Rodríguez','carlos.rodriguez@exampl2e.com'),
