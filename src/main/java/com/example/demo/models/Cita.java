@@ -24,6 +24,7 @@ public class Cita {
     @Column(nullable = false)
     private String motivoCita;
 
+    @Column(nullable = true)
     private int attribute11;
 }
 

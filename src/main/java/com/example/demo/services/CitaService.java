@@ -12,7 +12,6 @@ import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.Date;
 import java.util.List;
 
 @Service
