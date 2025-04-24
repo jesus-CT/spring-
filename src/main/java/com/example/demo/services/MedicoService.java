@@ -4,6 +4,7 @@ import com.example.demo.models.Medico;
 import com.example.demo.repositories.MedicoRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,8 +34,15 @@ public class MedicoService {
     }
 
     public Medico createMedico(@NotNull @Valid Medico medico) {
-        medico.setId(null);
-        return medicoRepository.save(medico);
+        try {
+            medico.setId(null);
+            return medicoRepository.save(medico);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El nombre de usuario '" + medico.getUsuario() + "' ya está en uso"
+            );
+        }
     }
 
     public Medico updateMedico(@NotNull Long id, @NotNull @Valid Medico datosNuevos) {

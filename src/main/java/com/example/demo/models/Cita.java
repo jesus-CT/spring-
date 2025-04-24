@@ -9,6 +9,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
 import java.util.Date;
 
 
@@ -37,6 +42,20 @@ public class Cita {
     @OneToOne(mappedBy = "cita", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Diagnostico diagnostico;
+
+    // Relación hacia Paciente (muchas citas → un paciente)
+    @NotNull(message = "La cita debe tener asignado un paciente")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "paciente_id", nullable = false)
+    @JsonBackReference("paciente-citas")
+    private Paciente paciente;
+
+    // Relación hacia Médico (muchas citas → un médico)
+    @NotNull(message = "La cita debe tener asignado un médico")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "medico_id", nullable = false)
+    @JsonBackReference("medico-citas")
+    private Medico medico;
 }
 
 

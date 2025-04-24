@@ -4,6 +4,7 @@ import com.example.demo.models.Paciente;
 import com.example.demo.repositories.PacienteRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,8 +35,15 @@ public class PacienteService {
     }
 
     public Paciente createPaciente(@NotNull @Valid Paciente paciente) {
-        paciente.setId(null);
-        return pacienteRepository.save(paciente);
+        try {
+            paciente.setId(null);
+            return pacienteRepository.save(paciente);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El nombre de usuario '" + paciente.getUsuario() + "' ya está en uso"
+            );
+        }
     }
 
     public Paciente updatePaciente(@NotNull Long id, @NotNull @Valid Paciente datosNuevos) {
