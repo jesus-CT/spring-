@@ -2,6 +2,8 @@ package com.example.demo.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class PacienteDTO {
     private Long id;
@@ -13,4 +15,6 @@ public class PacienteDTO {
     private String numTarjeta;
     private String telefono;
     private String direccion;
+
+    private List<Long> medicoIds;
 }

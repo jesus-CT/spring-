@@ -39,11 +39,11 @@ SELECT setval(
        );
 
 -- 4) Relación Paciente ↔ Médico (tabla paciente_medico)
--- INSERT INTO paciente_medico
--- (paciente_id, medico_id)
--- VALUES
---     (2, 1),
---     (3, 1);
+INSERT INTO paciente_medico
+(paciente_id, medico_id)
+VALUES
+    (2, 1),
+    (3, 1);
 
 -- 5) Citas (@JoinColumn paciente_id y medico_id en Cita.java) :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
 INSERT INTO cita

@@ -3,7 +3,9 @@ package com.example.demo.services;
 import com.example.demo.dto.MedicoDTO;
 import com.example.demo.mapper.MedicoMapper;
 import com.example.demo.models.Medico;
+import com.example.demo.models.Paciente;
 import com.example.demo.repositories.MedicoRepository;
+import com.example.demo.repositories.PacienteRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,16 +25,19 @@ import java.util.stream.Collectors;
 public class MedicoService {
 
     private final MedicoRepository medicoRepository;
+    private final PacienteRepository pacienteRepository;
     private final MedicoMapper medicoMapper;
 
-    public MedicoService(MedicoRepository medicoRepository, MedicoMapper medicoMapper) {
+    public MedicoService(MedicoRepository medicoRepository,
+                         PacienteRepository pacienteRepository,
+                         MedicoMapper medicoMapper) {
         this.medicoRepository = medicoRepository;
+        this.pacienteRepository = pacienteRepository;
         this.medicoMapper = medicoMapper;
     }
 
     public List<MedicoDTO> getAllMedicos() {
-        return medicoRepository
-                .findAll(Sort.by(Sort.Direction.ASC, "apellidos").and(Sort.by("nombre")))
+        return medicoRepository.findAll(Sort.by(Sort.Direction.ASC, "apellidos").and(Sort.by("nombre")))
                 .stream()
                 .map(medicoMapper::toDto)
                 .collect(Collectors.toList());
@@ -43,42 +50,79 @@ public class MedicoService {
         return medicoMapper.toDto(medico);
     }
 
-    public MedicoDTO createMedico(@NotNull @Valid MedicoDTO medicoDto) {
+    public MedicoDTO createMedico(@NotNull @Valid MedicoDTO dto) {
         try {
-            Medico medico = medicoMapper.toEntity(medicoDto);
+            Medico medico = medicoMapper.toEntity(dto);
             medico.setId(null);
-            Medico saved = medicoRepository.save(medico);
-            return medicoMapper.toDto(saved);
+
+            // Guardo primero el médico para tener ID
+            Medico savedMedico = medicoRepository.save(medico);
+
+            // Asigno pacientes en el owning side (Paciente.medicos)
+            if (dto.getPacienteIds() != null) {
+                dto.getPacienteIds().forEach(pid -> {
+                    Paciente p = pacienteRepository.findById(pid)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.BAD_REQUEST,
+                                    "Paciente no encontrado con id " + pid));
+                    p.getMedicos().add(savedMedico);
+                    pacienteRepository.save(p);
+                });
+            }
+
+            // 3. recargas el médico ya con su lista de pacientes (colección inversa)
+            Medico reloaded = medicoRepository.findById(savedMedico.getId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR, "Error recargando médico"));
+
+            // 4. mapeas y devuelves
+            return medicoMapper.toDto(reloaded);
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El nombre de usuario '" + medicoDto.getUsuario() + "' ya está en uso"
+                    "El nombre de usuario '" + dto.getUsuario() + "' ya está en uso"
             );
         }
     }
 
-    public MedicoDTO updateMedico(@NotNull Long id, @NotNull @Valid MedicoDTO medicoDto) {
-        if (!medicoRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Médico no encontrado con id " + id);
+    public MedicoDTO updateMedico(@NotNull Long id, @NotNull @Valid MedicoDTO dto) {
+        Medico existente = medicoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Médico no encontrado con id " + id));
+
+        existente.setNombre(dto.getNombre());
+        existente.setApellidos(dto.getApellidos());
+        existente.setUsuario(dto.getUsuario());
+        existente.setClave(dto.getClave());
+        existente.setNumColegiado(dto.getNumColegiado());
+
+        // Limpio las asociaciones previas en la tabla intermedia
+        existente.getPacientes().forEach(p -> {
+            p.getMedicos().remove(existente);
+            pacienteRepository.save(p);
+        });
+        existente.getPacientes().clear();
+
+        // Vuelvo a asignar según DTO
+        if (dto.getPacienteIds() != null) {
+            dto.getPacienteIds().forEach(pid -> {
+                Paciente p = pacienteRepository.findById(pid)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Paciente no encontrado con id " + pid));
+                p.getMedicos().add(existente);
+                pacienteRepository.save(p);
+            });
         }
-        try {
-            Medico toUpdate = medicoMapper.toEntity(medicoDto);
-            toUpdate.setId(id);
-            Medico updated = medicoRepository.save(toUpdate);
-            return medicoMapper.toDto(updated);
-        } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El nombre de usuario '" + medicoDto.getUsuario() + "' ya está en uso"
-            );
-        }
+
+        Medico updated = medicoRepository.save(existente);
+        return medicoMapper.toDto(updated);
     }
 
     public void deleteMedico(@NotNull Long id) {
-        Medico existing = medicoRepository.findById(id)
+        Medico existente = medicoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Médico no encontrado con id " + id));
-        medicoRepository.delete(existing);
+        medicoRepository.delete(existente);
     }
 }
