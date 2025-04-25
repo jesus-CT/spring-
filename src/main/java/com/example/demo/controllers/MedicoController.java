@@ -1,6 +1,6 @@
 package com.example.demo.controllers;
 
-import com.example.demo.models.Medico;
+import com.example.demo.dto.MedicoDTO;
 import com.example.demo.services.MedicoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,28 +21,27 @@ public class MedicoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Medico>> getAll() {
+    public ResponseEntity<List<MedicoDTO>> getAll() {
         return ResponseEntity.ok(medicoService.getAllMedicos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Medico> getById(@PathVariable Long id) {
+    public ResponseEntity<MedicoDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(medicoService.getMedicoById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Medico> create(@Valid @RequestBody Medico medico) {
-        Medico creado = medicoService.createMedico(medico);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    public ResponseEntity<MedicoDTO> create(@Valid @RequestBody MedicoDTO medicoDto) {
+        MedicoDTO created = medicoService.createMedico(medicoDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Medico> update(
+    public ResponseEntity<MedicoDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody Medico datosNuevos) {
-
-        Medico actualizado = medicoService.updateMedico(id, datosNuevos);
-        return ResponseEntity.ok(actualizado);
+            @Valid @RequestBody MedicoDTO medicoDto) {
+        MedicoDTO updated = medicoService.updateMedico(id, medicoDto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

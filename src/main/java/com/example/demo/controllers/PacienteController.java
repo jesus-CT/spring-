@@ -1,7 +1,6 @@
-// src/main/java/com/example/demo/controllers/PacienteController.java
 package com.example.demo.controllers;
 
-import com.example.demo.models.Paciente;
+import com.example.demo.dto.PacienteDTO;
 import com.example.demo.services.PacienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,27 +21,26 @@ public class PacienteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Paciente>> getAll() {
+    public ResponseEntity<List<PacienteDTO>> getAll() {
         return ResponseEntity.ok(pacienteService.getAllPacientes());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Paciente> getById(@PathVariable Long id) {
+    public ResponseEntity<PacienteDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(pacienteService.getPacienteById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Paciente> create(@Valid @RequestBody Paciente paciente) {
-        Paciente creado = pacienteService.createPaciente(paciente);
+    public ResponseEntity<PacienteDTO> create(@Valid @RequestBody PacienteDTO dto) {
+        PacienteDTO creado = pacienteService.createPaciente(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Paciente> update(
+    public ResponseEntity<PacienteDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody Paciente datosNuevos) {
-
-        Paciente actualizado = pacienteService.updatePaciente(id, datosNuevos);
+            @Valid @RequestBody PacienteDTO dto) {
+        PacienteDTO actualizado = pacienteService.updatePaciente(id, dto);
         return ResponseEntity.ok(actualizado);
     }
 

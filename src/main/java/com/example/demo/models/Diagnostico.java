@@ -26,7 +26,7 @@ public class Diagnostico {
 
     @OneToOne
     @JoinColumn(name = "cita_id", nullable = false)
-    @JsonBackReference           // evita bucle en el JSON
+    @JsonBackReference
     private Cita cita;
 
 }

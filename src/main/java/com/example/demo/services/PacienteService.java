@@ -1,5 +1,8 @@
+// src/main/java/com/example/demo/services/PacienteService.java
 package com.example.demo.services;
 
+import com.example.demo.dto.PacienteDTO;
+import com.example.demo.mapper.PacienteMapper;
 import com.example.demo.models.Paciente;
 import com.example.demo.repositories.PacienteRepository;
 import jakarta.validation.Valid;
@@ -12,55 +15,72 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Validated
 public class PacienteService {
 
     private final PacienteRepository pacienteRepository;
+    private final PacienteMapper pacienteMapper;
 
-    public PacienteService(PacienteRepository pacienteRepository) {
+    public PacienteService(PacienteRepository pacienteRepository, PacienteMapper pacienteMapper) {
         this.pacienteRepository = pacienteRepository;
+        this.pacienteMapper = pacienteMapper;
     }
 
-    public List<Paciente> getAllPacientes() {
+    public List<PacienteDTO> getAllPacientes() {
         return pacienteRepository.findAll(Sort.by(Sort.Direction.ASC, "apellidos")
-                .and(Sort.by("nombre")));
+                        .and(Sort.by("nombre")))
+                .stream()
+                .map(pacienteMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    public Paciente getPacienteById(@NotNull Long id) {
-        return pacienteRepository.findById(id)
+    public PacienteDTO getPacienteById(@NotNull Long id) {
+        Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
+        return pacienteMapper.toDto(paciente);
     }
 
-    public Paciente createPaciente(@NotNull @Valid Paciente paciente) {
+    public PacienteDTO createPaciente(@NotNull @Valid PacienteDTO dto) {
         try {
+            Paciente paciente = pacienteMapper.toEntity(dto);
             paciente.setId(null);
-            return pacienteRepository.save(paciente);
+            Paciente saved = pacienteRepository.save(paciente);
+            return pacienteMapper.toDto(saved);
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El nombre de usuario '" + paciente.getUsuario() + "' ya está en uso"
+                    "El nombre de usuario '" + dto.getUsuario() + "' ya está en uso"
             );
         }
     }
 
-    public Paciente updatePaciente(@NotNull Long id, @NotNull @Valid Paciente datosNuevos) {
-        Paciente existente = getPacienteById(id);
-        existente.setNombre(datosNuevos.getNombre());
-        existente.setApellidos(datosNuevos.getApellidos());
-        existente.setUsuario(datosNuevos.getUsuario());
-        existente.setClave(datosNuevos.getClave());
-        existente.setNSS(datosNuevos.getNSS());
-        existente.setNumTarjeta(datosNuevos.getNumTarjeta());
-        existente.setTelefono(datosNuevos.getTelefono());
-        existente.setDireccion(datosNuevos.getDireccion());
-        return pacienteRepository.save(existente);
+    public PacienteDTO updatePaciente(@NotNull Long id, @NotNull @Valid PacienteDTO dto) {
+        Paciente existente = pacienteRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
+
+        // Mapeo manual de los campos del DTO sobre la entidad existente
+        existente.setNombre(dto.getNombre());
+        existente.setApellidos(dto.getApellidos());
+        existente.setUsuario(dto.getUsuario());
+        existente.setClave(dto.getClave());
+        existente.setNSS(dto.getNSS());
+        existente.setNumTarjeta(dto.getNumTarjeta());
+        existente.setTelefono(dto.getTelefono());
+        existente.setDireccion(dto.getDireccion());
+
+        Paciente updated = pacienteRepository.save(existente);
+        return pacienteMapper.toDto(updated);
     }
 
     public void deletePaciente(@NotNull Long id) {
-        Paciente existente = getPacienteById(id);
+        Paciente existente = pacienteRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
         pacienteRepository.delete(existente);
     }
 }

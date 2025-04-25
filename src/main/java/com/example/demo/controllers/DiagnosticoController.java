@@ -1,6 +1,6 @@
 package com.example.demo.controllers;
 
-import com.example.demo.models.Diagnostico;
+import com.example.demo.dto.DiagnosticoDTO;
 import com.example.demo.services.DiagnosticoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,27 +21,26 @@ public class DiagnosticoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Diagnostico>> getAll() {
+    public ResponseEntity<List<DiagnosticoDTO>> getAll() {
         return ResponseEntity.ok(diagnosticoService.getAllDiagnosticos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Diagnostico> getById(@PathVariable Long id) {
+    public ResponseEntity<DiagnosticoDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(diagnosticoService.getDiagnosticoById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Diagnostico> create(@Valid @RequestBody Diagnostico diag) {
-        Diagnostico creado = diagnosticoService.createDiagnostico(diag);
+    public ResponseEntity<DiagnosticoDTO> create(@Valid @RequestBody DiagnosticoDTO dto) {
+        DiagnosticoDTO creado = diagnosticoService.createDiagnostico(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Diagnostico> update(
+    public ResponseEntity<DiagnosticoDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody Diagnostico datosNuevos) {
-
-        Diagnostico actualizado = diagnosticoService.updateDiagnostico(id, datosNuevos);
+            @Valid @RequestBody DiagnosticoDTO dto) {
+        DiagnosticoDTO actualizado = diagnosticoService.updateDiagnostico(id, dto);
         return ResponseEntity.ok(actualizado);
     }
 

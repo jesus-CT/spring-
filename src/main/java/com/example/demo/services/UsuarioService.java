@@ -1,5 +1,7 @@
 package com.example.demo.services;
 
+import com.example.demo.dto.UsuarioDTO;
+import com.example.demo.mapper.UsuarioMapper;
 import com.example.demo.models.Usuario;
 import com.example.demo.repositories.UsuarioRepository;
 import org.springframework.data.domain.Sort;
@@ -17,37 +19,55 @@ import java.util.List;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper mapper;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, UsuarioMapper mapper) {
         this.usuarioRepository = usuarioRepository;
+        this.mapper = mapper;
     }
 
-    public List<Usuario> getAllUsuarios() {
-        return usuarioRepository.findAll(Sort.by(Sort.Direction.ASC, "apellidos").and(Sort.by("nombre")));
+    public List<UsuarioDTO> getAllUsuarios() {
+        List<Usuario> usuarios = usuarioRepository.findAll(
+                Sort.by(Sort.Direction.ASC, "apellidos")
+                        .and(Sort.by("nombre"))
+        );
+        return mapper.toDtoList(usuarios);
     }
 
-    public Usuario getUsuarioById(@NotNull Long id) {
-        return usuarioRepository.findById(id)
+    public UsuarioDTO getUsuarioById(@NotNull Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Usuario no encontrado con id " + id));
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado con id " + id
+                ));
+        return mapper.toDto(usuario);
     }
 
-    public Usuario createUsuario(@NotNull @Valid Usuario usuario) {
-        usuario.setId(null);
-        return usuarioRepository.save(usuario);
-    }
+//    public UsuarioDTO createUsuario(@NotNull @Valid UsuarioDTO dto) {
+//        Usuario entidad = mapper.toEntity(dto);
+//        entidad.setId(null); // asegurar que se genere un nuevo ID
+//        Usuario guardado = usuarioRepository.save(entidad);
+//        return mapper.toDto(guardado);
+//    }
 
-    public Usuario updateUsuario(@NotNull Long id, @NotNull @Valid Usuario datosNuevos) {
-        Usuario existente = getUsuarioById(id);
-        existente.setNombre(datosNuevos.getNombre());
-        existente.setApellidos(datosNuevos.getApellidos());
-        existente.setUsuario(datosNuevos.getUsuario());
-        existente.setClave(datosNuevos.getClave());
-        return usuarioRepository.save(existente);
+    public UsuarioDTO updateUsuario(@NotNull Long id, @NotNull @Valid UsuarioDTO dto) {
+        Usuario existente = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado con id " + id
+                ));
+        // actualizamos campos
+        existente.setNombre(dto.getNombre());
+        existente.setApellidos(dto.getApellidos());
+        existente.setUsuario(dto.getUsuario());
+        existente.setClave(dto.getClave());
+        Usuario actualizado = usuarioRepository.save(existente);
+        return mapper.toDto(actualizado);
     }
 
     public void deleteUsuario(@NotNull Long id) {
-        Usuario existente = getUsuarioById(id);
+        Usuario existente = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado con id " + id
+                ));
         usuarioRepository.delete(existente);
     }
 }

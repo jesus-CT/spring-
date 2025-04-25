@@ -23,12 +23,27 @@ INSERT INTO medico
 VALUES
     (1, 'MED2021001');
 
+SELECT setval(
+               pg_get_serial_sequence('usuario','id'),
+               (SELECT MAX(id) FROM usuario)
+       );
+
+SELECT setval(
+               pg_get_serial_sequence('paciente','id'),
+               (SELECT MAX(id) FROM paciente)
+       );
+
+SELECT setval(
+               pg_get_serial_sequence('medico','id'),
+               (SELECT MAX(id) FROM medico)
+       );
+
 -- 4) Relación Paciente ↔ Médico (tabla paciente_medico)
-INSERT INTO paciente_medico
-(paciente_id, medico_id)
-VALUES
-    (2, 1),
-    (3, 1);
+-- INSERT INTO paciente_medico
+-- (paciente_id, medico_id)
+-- VALUES
+--     (2, 1),
+--     (3, 1);
 
 -- 5) Citas (@JoinColumn paciente_id y medico_id en Cita.java) :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
 INSERT INTO cita
@@ -49,3 +64,8 @@ INSERT INTO diagnostico
 VALUES
     (1, 'Todo en orden',   'Ninguna',   1),
     (2, 'Requiere reposo', 'Migraña',   2);
+
+SELECT setval(
+               pg_get_serial_sequence('diagnostico','id'),
+               (SELECT MAX(id) FROM diagnostico)
+       );

@@ -1,9 +1,11 @@
+// src/main/java/com/example/demo/controllers/CitaController.java
 package com.example.demo.controllers;
 
-import com.example.demo.models.Cita;
+import com.example.demo.dto.CitaDTO;
 import com.example.demo.services.CitaService;
 import jakarta.validation.Valid;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,29 +22,26 @@ public class CitaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Cita>> getAllCitas() {
+    public ResponseEntity<List<CitaDTO>> getAllCitas() {
         return ResponseEntity.ok(citaService.getAllCitas());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cita> getCitaById(@PathVariable Long id) {
+    public ResponseEntity<CitaDTO> getCitaById(@PathVariable Long id) {
         return ResponseEntity.ok(citaService.getCitaById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Cita> createCita(@Valid @RequestBody Cita cita) {
-        Cita creada = citaService.createCita(cita);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(creada);
+    public ResponseEntity<CitaDTO> createCita(@Valid @RequestBody CitaDTO dto) {
+        CitaDTO creada = citaService.createCita(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cita> updateCita(
+    public ResponseEntity<CitaDTO> updateCita(
             @PathVariable Long id,
-            @Valid @RequestBody Cita datosNuevos) {
-
-        Cita actualizada = citaService.updateCita(id, datosNuevos);
+            @Valid @RequestBody CitaDTO dto) {
+        CitaDTO actualizada = citaService.updateCita(id, dto);
         return ResponseEntity.ok(actualizada);
     }
 

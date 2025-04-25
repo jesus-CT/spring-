@@ -1,6 +1,6 @@
 package com.example.demo.controllers;
 
-import com.example.demo.models.Usuario;
+import com.example.demo.dto.UsuarioDTO;
 import com.example.demo.services.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,27 +21,28 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Usuario>> getAll() {
-        return ResponseEntity.ok(usuarioService.getAllUsuarios());
+    public ResponseEntity<List<UsuarioDTO>> getAll() {
+        List<UsuarioDTO> dtos = usuarioService.getAllUsuarios();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(usuarioService.getUsuarioById(id));
+    public ResponseEntity<UsuarioDTO> getById(@PathVariable Long id) {
+        UsuarioDTO dto = usuarioService.getUsuarioById(id);
+        return ResponseEntity.ok(dto);
     }
 
-    @PostMapping
-    public ResponseEntity<Usuario> create(@Valid @RequestBody Usuario usuario) {
-        Usuario creado = usuarioService.createUsuario(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
-    }
+//    @PostMapping
+//    public ResponseEntity<UsuarioDTO> create(@Valid @RequestBody UsuarioDTO dto) {
+//        UsuarioDTO creado = usuarioService.createUsuario(dto);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+//    }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> update(
+    public ResponseEntity<UsuarioDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody Usuario datosNuevos) {
-
-        Usuario actualizado = usuarioService.updateUsuario(id, datosNuevos);
+            @Valid @RequestBody UsuarioDTO dto) {
+        UsuarioDTO actualizado = usuarioService.updateUsuario(id, dto);
         return ResponseEntity.ok(actualizado);
     }
 

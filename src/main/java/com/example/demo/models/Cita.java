@@ -37,12 +37,6 @@ public class Cita {
     @Column(nullable = true)
     private int attribute11;
 
-    @NotNull(message = "El diagnóstico es obligatorio")
-    @Valid
-    @OneToOne(mappedBy = "cita", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private Diagnostico diagnostico;
-
     // Relación hacia Paciente (muchas citas → un paciente)
     @NotNull(message = "La cita debe tener asignado un paciente")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
