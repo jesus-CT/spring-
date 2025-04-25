@@ -22,17 +22,18 @@ import java.util.stream.Collectors;
 public class DiagnosticoService {
 
     private final DiagnosticoRepository diagnosticoRepository;
-    private final CitaRepository citaRepository;
     private final DiagnosticoMapper diagnosticoMapper;
+    private final CitaRepository citaRepository;
 
     public DiagnosticoService(DiagnosticoRepository diagnosticoRepository,
-                              CitaRepository citaRepository,
-                              DiagnosticoMapper diagnosticoMapper) {
+                              DiagnosticoMapper diagnosticoMapper,
+                              CitaRepository citaRepository) {
         this.diagnosticoRepository = diagnosticoRepository;
-        this.citaRepository = citaRepository;
         this.diagnosticoMapper = diagnosticoMapper;
+        this.citaRepository = citaRepository;
     }
 
+    // 1. Lectura de todos los diagnósticos
     public List<DiagnosticoDTO> getAllDiagnosticos() {
         return diagnosticoRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
                 .stream()
@@ -40,6 +41,7 @@ public class DiagnosticoService {
                 .collect(Collectors.toList());
     }
 
+    // 2. Lectura de uno por ID
     public DiagnosticoDTO getDiagnosticoById(@NotNull Long id) {
         Diagnostico diagnostico = diagnosticoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -47,41 +49,31 @@ public class DiagnosticoService {
         return diagnosticoMapper.toDto(diagnostico);
     }
 
-    public DiagnosticoDTO createDiagnostico(@NotNull @Valid DiagnosticoDTO dto) {
-        Diagnostico diagnostico = diagnosticoMapper.toEntity(dto);
-        diagnostico.setId(null);
+    // 3. Creación: eliminado (la creación se hace siempre a través de CitaService)
 
-        Cita cita = citaRepository.findById(dto.getCitaId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Cita no encontrada con id " + dto.getCitaId()));
-        diagnostico.setCita(cita);
-
-        Diagnostico saved = diagnosticoRepository.save(diagnostico);
-        return diagnosticoMapper.toDto(saved);
-    }
-
+    // 4. Actualización: sólo actualiza los campos del diagnóstico
     public DiagnosticoDTO updateDiagnostico(@NotNull Long id, @NotNull @Valid DiagnosticoDTO dto) {
         Diagnostico existente = diagnosticoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Diagnóstico no encontrado con id " + id));
 
+        // MapStruct aplica valoracionEspecialista y enfermedad
         diagnosticoMapper.updateFromDto(dto, existente);
-
-        Cita cita = citaRepository.findById(dto.getCitaId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Cita no encontrada con id " + dto.getCitaId()));
-        existente.setCita(cita);
 
         Diagnostico updated = diagnosticoRepository.save(existente);
         return diagnosticoMapper.toDto(updated);
     }
 
+    // 5. Borrado
     public void deleteDiagnostico(@NotNull Long id) {
         Diagnostico existente = diagnosticoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Diagnóstico no encontrado con id " + id));
-        diagnosticoRepository.delete(existente);
+
+        // 1. Recupero la cita padre
+        Cita cita = existente.getCita();
+
+        // 2. Borro la cita: con cascade+orphanRemoval en Cita, se elimina también el diagnóstico
+        citaRepository.delete(cita);
     }
 }

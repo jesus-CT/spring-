@@ -24,9 +24,10 @@ public class Diagnostico {
     @Column(nullable = false)
     private String enfermedad;
 
-    @OneToOne
-    @JoinColumn(name = "cita_id", nullable = false)
-    @JsonBackReference
+    @NotNull(message = "El diagnóstico debe pertenecer a una cita")
+    @OneToOne(optional = false)
+    @JoinColumn(name = "cita_id", nullable = false, unique = true)
+    @JsonBackReference("cita-diagnostico")
     private Cita cita;
 
 }

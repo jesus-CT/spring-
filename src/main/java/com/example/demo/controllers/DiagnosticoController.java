@@ -11,7 +11,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/diagnosticos")
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+        origins = "http://localhost:8080",
+        methods = { RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE }
+)
 public class DiagnosticoController {
 
     private final DiagnosticoService diagnosticoService;
@@ -28,12 +34,6 @@ public class DiagnosticoController {
     @GetMapping("/{id}")
     public ResponseEntity<DiagnosticoDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(diagnosticoService.getDiagnosticoById(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<DiagnosticoDTO> create(@Valid @RequestBody DiagnosticoDTO dto) {
-        DiagnosticoDTO creado = diagnosticoService.createDiagnostico(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")

@@ -50,6 +50,17 @@ public class Cita {
     @JoinColumn(name = "medico_id", nullable = false)
     @JsonBackReference("medico-citas")
     private Medico medico;
+
+    @NotNull(message = "La cita debe tener un diagnóstico")
+    @Valid
+    @OneToOne(
+            mappedBy = "cita",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            optional = false
+    )
+    @JsonManagedReference("cita-diagnostico")
+    private Diagnostico diagnostico;
 }
 
 
