@@ -1,7 +1,7 @@
 package com.example.demo.controllers;
 
 import com.example.demo.dto.PacienteDTO;
-import com.example.demo.services.PacienteService;
+import com.example.demo.services.GenericService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,39 +14,40 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class PacienteController {
 
-    private final PacienteService pacienteService;
+    private final GenericService<PacienteDTO, Long> pacienteService;
 
-    public PacienteController(PacienteService pacienteService) {
+    public PacienteController(GenericService<PacienteDTO, Long> pacienteService) {
         this.pacienteService = pacienteService;
     }
 
     @GetMapping
     public ResponseEntity<List<PacienteDTO>> getAll() {
-        return ResponseEntity.ok(pacienteService.getAllPacientes());
+        return ResponseEntity.ok(pacienteService.findAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PacienteDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(pacienteService.getPacienteById(id));
+        return ResponseEntity.ok(pacienteService.findById(id));
     }
 
     @PostMapping
     public ResponseEntity<PacienteDTO> create(@Valid @RequestBody PacienteDTO dto) {
-        PacienteDTO creado = pacienteService.createPaciente(dto);
+        PacienteDTO creado = pacienteService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PacienteDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody PacienteDTO dto) {
-        PacienteDTO actualizado = pacienteService.updatePaciente(id, dto);
+            @Valid @RequestBody PacienteDTO dto
+    ) {
+        PacienteDTO actualizado = pacienteService.update(id, dto);
         return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        pacienteService.deletePaciente(id);
+        pacienteService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

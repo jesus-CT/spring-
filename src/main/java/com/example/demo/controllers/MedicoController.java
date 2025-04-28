@@ -1,7 +1,7 @@
 package com.example.demo.controllers;
 
 import com.example.demo.dto.MedicoDTO;
-import com.example.demo.services.MedicoService;
+import com.example.demo.services.GenericService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,39 +14,39 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class MedicoController {
 
-    private final MedicoService medicoService;
+    private final GenericService<MedicoDTO, Long> medicoService;
 
-    public MedicoController(MedicoService medicoService) {
+    public MedicoController(GenericService<MedicoDTO, Long> medicoService) {
         this.medicoService = medicoService;
     }
 
     @GetMapping
     public ResponseEntity<List<MedicoDTO>> getAll() {
-        return ResponseEntity.ok(medicoService.getAllMedicos());
+        return ResponseEntity.ok(medicoService.findAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<MedicoDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(medicoService.getMedicoById(id));
+        return ResponseEntity.ok(medicoService.findById(id));
     }
 
     @PostMapping
-    public ResponseEntity<MedicoDTO> create(@Valid @RequestBody MedicoDTO medicoDto) {
-        MedicoDTO created = medicoService.createMedico(medicoDto);
+    public ResponseEntity<MedicoDTO> create(@Valid @RequestBody MedicoDTO dto) {
+        MedicoDTO created = medicoService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<MedicoDTO> update(
             @PathVariable Long id,
-            @Valid @RequestBody MedicoDTO medicoDto) {
-        MedicoDTO updated = medicoService.updateMedico(id, medicoDto);
-        return ResponseEntity.ok(updated);
+            @Valid @RequestBody MedicoDTO dto
+    ) {
+        return ResponseEntity.ok(medicoService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        medicoService.deleteMedico(id);
+        medicoService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

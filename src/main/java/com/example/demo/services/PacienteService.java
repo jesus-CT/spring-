@@ -2,79 +2,51 @@ package com.example.demo.services;
 
 import com.example.demo.dto.PacienteDTO;
 import com.example.demo.mapper.PacienteMapper;
-import com.example.demo.models.Medico;
 import com.example.demo.models.Paciente;
-import com.example.demo.repositories.MedicoRepository;
+import com.example.demo.models.Medico;
 import com.example.demo.repositories.PacienteRepository;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import org.springframework.data.domain.Sort;
+import com.example.demo.repositories.MedicoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ResponseStatusException;
-
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @Validated
-public class PacienteService {
+public class PacienteService
+        extends AbstractService<PacienteDTO, Paciente, Long> {
 
-    private final PacienteRepository pacienteRepository;
     private final MedicoRepository medicoRepository;
-    private final PacienteMapper pacienteMapper;
 
-    public PacienteService(PacienteRepository pacienteRepository,
-                           MedicoRepository medicoRepository,
-                           PacienteMapper pacienteMapper) {
-        this.pacienteRepository = pacienteRepository;
+    public PacienteService(
+            PacienteRepository pacienteRepository,
+            MedicoRepository medicoRepository,
+            PacienteMapper pacienteMapper
+    ) {
+        super(pacienteRepository, pacienteMapper, Paciente.class);
         this.medicoRepository = medicoRepository;
-        this.pacienteMapper = pacienteMapper;
     }
 
-    public List<PacienteDTO> getAllPacientes() {
-        return pacienteRepository.findAll(
-                        Sort.by(Sort.Direction.ASC, "apellidos")
-                                .and(Sort.by("nombre"))
-                )
-                .stream()
-                .map(pacienteMapper::toDto)
-                .collect(Collectors.toList());
-    }
+    @Override
+    public PacienteDTO create(PacienteDTO dto) {
+        // 1) Unicidad
+        if (((PacienteRepository) repository).existsByNSS(dto.getNSS()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "NSS ya registrado");
+        if (((PacienteRepository) repository).existsByNumTarjeta(dto.getNumTarjeta()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "NumTarjeta ya en uso");
+        if (((PacienteRepository) repository).existsByUsuario(dto.getUsuario()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Usuario ya existe");
 
-    public PacienteDTO getPacienteById(@NotNull Long id) {
-        Paciente paciente = pacienteRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
-        return pacienteMapper.toDto(paciente);
-    }
-
-    public PacienteDTO createPaciente(@NotNull @Valid PacienteDTO dto) {
-        // 1) Validar unicidad
-        if (pacienteRepository.existsByNSS(dto.getNSS())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El NSS '" + dto.getNSS() + "' ya está registrado"
-            );
-        }
-        if (pacienteRepository.existsByNumTarjeta(dto.getNumTarjeta())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El número de tarjeta '" + dto.getNumTarjeta() + "' ya está en uso"
-            );
-        }
-        if (pacienteRepository.existsByUsuario(dto.getUsuario())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El usuario '" + dto.getUsuario() + "' ya existe"
-            );
-        }
-
-        // 2) Mapear, asignar médicos y guardar
-        Paciente paciente = pacienteMapper.toEntity(dto);
+        // 2) Mapeo + asignación de Médicos
+        Paciente paciente = mapper.toEntity(dto);
         paciente.setId(null);
         Set<Medico> medicos = dto.getMedicoIds() == null
                 ? Collections.emptySet()
@@ -86,45 +58,35 @@ public class PacienteService {
                 .collect(Collectors.toSet());
         paciente.setMedicos(medicos);
 
-        Paciente saved = pacienteRepository.save(paciente);
-        return pacienteMapper.toDto(saved);
+        // 3) Guardar y devolver DTO
+        Paciente saved = repository.save(paciente);
+        return mapper.toDto(saved);
     }
 
-    public PacienteDTO updatePaciente(@NotNull Long id, @NotNull @Valid PacienteDTO dto) {
-        Paciente existente = pacienteRepository.findById(id)
+    @Override
+    public PacienteDTO update(Long id, PacienteDTO dto) {
+        Paciente existente = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
 
-        // Validar unicidad para actualización (ignorando el propio registro)
-        if (pacienteRepository.existsByNSSAndIdNot(dto.getNSS(), id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El NSS '" + dto.getNSS() + "' ya está registrado por otro paciente"
-            );
-        }
-        if (pacienteRepository.existsByNumTarjetaAndIdNot(dto.getNumTarjeta(), id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El número de tarjeta '" + dto.getNumTarjeta() + "' ya está en uso por otro paciente"
-            );
-        }
-        if (pacienteRepository.existsByUsuarioAndIdNot(dto.getUsuario(), id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El usuario '" + dto.getUsuario() + "' ya existe para otro paciente"
-            );
-        }
+        // unicidad a la carta (ignorando este mismo id)
+        if (((PacienteRepository) repository)
+                .existsByNSSAndIdNot(dto.getNSS(), id))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "NSS registrado por otro paciente");
+        if (((PacienteRepository) repository)
+                .existsByNumTarjetaAndIdNot(dto.getNumTarjeta(), id))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "NumTarjeta en uso por otro paciente");
+        if (((PacienteRepository) repository)
+                .existsByUsuarioAndIdNot(dto.getUsuario(), id))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Usuario en uso por otro paciente");
 
-        // Mapear campos (podrías usar pacienteMapper.updateFromDto)
-        existente.setNombre(dto.getNombre());
-        existente.setApellidos(dto.getApellidos());
-        existente.setUsuario(dto.getUsuario());
-        existente.setClave(dto.getClave());
-        existente.setNSS(dto.getNSS());
-        existente.setNumTarjeta(dto.getNumTarjeta());
-        existente.setTelefono(dto.getTelefono());
-        existente.setDireccion(dto.getDireccion());
+        // MapStruct actualiza nombre, apellidos, usuario, clave, NSS, numTarjeta, telefono, direccion
+        mapper.updateEntityFromDto(dto, existente);
 
+        // reasignar méd​icos
         Set<Medico> medicos = dto.getMedicoIds() == null
                 ? Collections.emptySet()
                 : dto.getMedicoIds().stream()
@@ -135,14 +97,9 @@ public class PacienteService {
                 .collect(Collectors.toSet());
         existente.setMedicos(medicos);
 
-        Paciente updated = pacienteRepository.save(existente);
-        return pacienteMapper.toDto(updated);
+        Paciente updated = repository.save(existente);
+        return mapper.toDto(updated);
     }
 
-    public void deletePaciente(@NotNull Long id) {
-        Paciente existente = pacienteRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
-        pacienteRepository.delete(existente);
-    }
+    // delete(id) lo hereda de AbstractService y basta para eliminar el paciente
 }
