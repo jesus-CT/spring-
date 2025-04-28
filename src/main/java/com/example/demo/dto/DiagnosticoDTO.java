@@ -12,4 +12,6 @@ public class DiagnosticoDTO {
 
     @NotNull(message = "La enfermedad es obligatoria")
     private String enfermedad;
+
+    private Long citaId;
 }
