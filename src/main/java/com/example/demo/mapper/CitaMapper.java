@@ -11,6 +11,7 @@ import com.example.demo.dto.CitaDTO;
         componentModel = "spring",
         uses = {DiagnosticoMapper.class}
 )
+
 public interface CitaMapper {
 
     @Mapping(source = "paciente.id", target = "pacienteId")
@@ -23,6 +24,8 @@ public interface CitaMapper {
     @Mapping(source = "diagnostico", target = "diagnostico")
     Cita toEntity(CitaDTO dto);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "diagnostico.id", ignore = true)
     void updateFromDto(CitaDTO dto, @MappingTarget Cita entidad);
 
     @AfterMapping

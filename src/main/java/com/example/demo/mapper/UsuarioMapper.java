@@ -1,23 +1,20 @@
 package com.example.demo.mapper;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import com.example.demo.models.Usuario;
+import com.example.demo.dto.MedicoDTO;
+import com.example.demo.dto.PacienteDTO;
 import com.example.demo.dto.UsuarioDTO;
-import java.util.List;
+import com.example.demo.models.Medico;
+import com.example.demo.models.Paciente;
+import com.example.demo.models.Usuario;
+import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
-public interface UsuarioMapper {
+@Mapper(componentModel = "spring",
+        subclassExhaustiveStrategy = SubclassExhaustiveStrategy.RUNTIME_EXCEPTION)
+public interface UsuarioMapper extends GenericMapper<UsuarioDTO,Usuario> {
 
-    UsuarioDTO toDto(Usuario usuario);
-
-    // Eliminamos: Usuario toEntity(UsuarioDTO dto);
-
-    /**
-     * Actualiza una entidad existente a partir del DTO.
-     * Como la entidad ya existe, no hay problema de clase abstracta.
-     */
-    void updateFromDto(UsuarioDTO dto, @MappingTarget Usuario entidad);
-
-    List<UsuarioDTO> toDtoList(List<Usuario> usuarios);
+    @SubclassMapping(source = PacienteDTO.class,  target = Paciente.class)
+    @SubclassMapping(source = MedicoDTO.class, target = Medico.class)
+    @Override
+    @Mapping(target = "id", ignore = true)
+    Usuario toEntity(UsuarioDTO dto);
 }

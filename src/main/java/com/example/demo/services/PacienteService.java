@@ -8,7 +8,6 @@ import com.example.demo.repositories.MedicoRepository;
 import com.example.demo.repositories.PacienteRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,10 @@ public class PacienteService {
     }
 
     public List<PacienteDTO> getAllPacientes() {
-        return pacienteRepository.findAll(Sort.by(Sort.Direction.ASC, "apellidos").and(Sort.by("nombre")))
+        return pacienteRepository.findAll(
+                        Sort.by(Sort.Direction.ASC, "apellidos")
+                                .and(Sort.by("nombre"))
+                )
                 .stream()
                 .map(pacienteMapper::toDto)
                 .collect(Collectors.toList());
@@ -51,28 +53,41 @@ public class PacienteService {
     }
 
     public PacienteDTO createPaciente(@NotNull @Valid PacienteDTO dto) {
-        try {
-            Paciente paciente = pacienteMapper.toEntity(dto);
-            paciente.setId(null);
-
-            Set<Medico> medicos = dto.getMedicoIds() == null
-                    ? Collections.emptySet()
-                    : dto.getMedicoIds().stream()
-                    .map(mid -> medicoRepository.findById(mid)
-                            .orElseThrow(() -> new ResponseStatusException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "Médico no encontrado con id " + mid)))
-                    .collect(Collectors.toSet());
-            paciente.setMedicos(medicos);
-
-            Paciente saved = pacienteRepository.save(paciente);
-            return pacienteMapper.toDto(saved);
-        } catch (DataIntegrityViolationException ex) {
+        // 1) Validar unicidad
+        if (pacienteRepository.existsByNSS(dto.getNSS())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El nombre de usuario '" + dto.getUsuario() + "' ya está en uso"
+                    "El NSS '" + dto.getNSS() + "' ya está registrado"
             );
         }
+        if (pacienteRepository.existsByNumTarjeta(dto.getNumTarjeta())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El número de tarjeta '" + dto.getNumTarjeta() + "' ya está en uso"
+            );
+        }
+        if (pacienteRepository.existsByUsuario(dto.getUsuario())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El usuario '" + dto.getUsuario() + "' ya existe"
+            );
+        }
+
+        // 2) Mapear, asignar médicos y guardar
+        Paciente paciente = pacienteMapper.toEntity(dto);
+        paciente.setId(null);
+        Set<Medico> medicos = dto.getMedicoIds() == null
+                ? Collections.emptySet()
+                : dto.getMedicoIds().stream()
+                .map(mid -> medicoRepository.findById(mid)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Médico no encontrado con id " + mid)))
+                .collect(Collectors.toSet());
+        paciente.setMedicos(medicos);
+
+        Paciente saved = pacienteRepository.save(paciente);
+        return pacienteMapper.toDto(saved);
     }
 
     public PacienteDTO updatePaciente(@NotNull Long id, @NotNull @Valid PacienteDTO dto) {
@@ -80,6 +95,27 @@ public class PacienteService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Paciente no encontrado con id " + id));
 
+        // Validar unicidad para actualización (ignorando el propio registro)
+        if (pacienteRepository.existsByNSSAndIdNot(dto.getNSS(), id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El NSS '" + dto.getNSS() + "' ya está registrado por otro paciente"
+            );
+        }
+        if (pacienteRepository.existsByNumTarjetaAndIdNot(dto.getNumTarjeta(), id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El número de tarjeta '" + dto.getNumTarjeta() + "' ya está en uso por otro paciente"
+            );
+        }
+        if (pacienteRepository.existsByUsuarioAndIdNot(dto.getUsuario(), id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El usuario '" + dto.getUsuario() + "' ya existe para otro paciente"
+            );
+        }
+
+        // Mapear campos (podrías usar pacienteMapper.updateFromDto)
         existente.setNombre(dto.getNombre());
         existente.setApellidos(dto.getApellidos());
         existente.setUsuario(dto.getUsuario());

@@ -1,16 +1,16 @@
 package com.example.demo.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-public class MedicoDTO {
+public class MedicoDTO extends UsuarioDTO {
     private Long id;
-    private String nombre;
-    private String apellidos;
-    private String usuario;
-    private String clave;
+
+    @NotBlank(message = "El numColegiado es obligatorio")
     private String numColegiado;
 
     private List<Long> pacienteIds;
