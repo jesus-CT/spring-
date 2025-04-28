@@ -2,110 +2,67 @@ package com.example.demo.services;
 
 import com.example.demo.dto.MedicoDTO;
 import com.example.demo.mapper.MedicoMapper;
+import com.example.demo.mapper.PacienteMapperHelper;
 import com.example.demo.models.Medico;
 import com.example.demo.models.Paciente;
 import com.example.demo.repositories.MedicoRepository;
 import com.example.demo.repositories.PacienteRepository;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import org.springframework.http.HttpStatus;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@Validated
-public class MedicoService
-        extends AbstractService<MedicoDTO, Medico, Long> {
+@Transactional
+public class MedicoService extends AbstractService<MedicoDTO, Medico, Long> implements IMedicoService {
 
     private final PacienteRepository pacienteRepository;
+    private final PacienteMapperHelper pacienteMapperHelper;
 
     public MedicoService(
-            MedicoRepository medicoRepository,
+            MedicoRepository repository,
+            MedicoMapper mapper,
             PacienteRepository pacienteRepository,
-            MedicoMapper medicoMapper
+            PacienteMapperHelper pacienteMapperHelper
     ) {
-        super(medicoRepository, medicoMapper, Medico.class);
+        super(repository, mapper, Medico.class);
         this.pacienteRepository = pacienteRepository;
-    }
-
-    @Override
-    public MedicoDTO create(MedicoDTO dto) {
-        try {
-            // 1) Mapeo inicial y guardamos para obtener ID
-            Medico medico = mapper.toEntity(dto);
-            medico.setId(null);
-            Medico saved = repository.save(medico);
-
-            // 2) Asignamos pacientes en el owning side (Paciente.medicos)
-            if (dto.getPacienteIds() != null) {
-                dto.getPacienteIds().forEach(pid -> {
-                    Paciente p = pacienteRepository.findById(pid)
-                            .orElseThrow(() -> new ResponseStatusException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "Paciente no encontrado con id " + pid
-                            ));
-                    p.getMedicos().add(saved);
-                    pacienteRepository.save(p);
-                });
-            }
-
-            // 3) Recargamos para traer la colección inversa y devolvemos DTO
-            Medico reloaded = repository.findById(saved.getId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            "Error recargando médico"
-                    ));
-            return mapper.toDto(reloaded);
-
-        } catch (DataIntegrityViolationException ex) {
-            // Captura violación de unique (usuario o numColegiado)
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El nombre de usuario o numColegiado ya están en uso"
-            );
-        }
+        this.pacienteMapperHelper = pacienteMapperHelper;
     }
 
     @Override
     public MedicoDTO update(Long id, MedicoDTO dto) {
-        // 1) Recuperar existente
-        Medico existente = repository.findById(id)
+        // 1. Recuperar entidad existente
+        Medico medico = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Médico no encontrado con id " + id
+                        HttpStatus.NOT_FOUND,
+                        "Medico no encontrado con id " + id
                 ));
 
-        // 2) MapStruct actualiza campos básicos y numColegiado
-        mapper.updateEntityFromDto(dto, existente);
+        // 2. Gestionar relaciones: pacientes
+        Set<Paciente> actuales = medico.getPacientes();
+        Set<Paciente> deseados = pacienteMapperHelper.mapIdsToPacientes(dto.getPacienteIds());
 
-        // 3) Limpiar asociaciones anteriores
-        existente.getPacientes().forEach(p -> {
-            p.getMedicos().remove(existente);
-            pacienteRepository.save(p);
-        });
-        existente.getPacientes().clear();
+        // 2.a Eliminar pacientes no deseados
+        actuales.stream()
+                .filter(p -> !deseados.contains(p))
+                .collect(Collectors.toSet()) // evita ConcurrentModification
+                .forEach(medico::removePaciente);
 
-        // 4) Reasignar según DTO
-        if (dto.getPacienteIds() != null) {
-            dto.getPacienteIds().forEach(pid -> {
-                Paciente p = pacienteRepository.findById(pid)
-                        .orElseThrow(() -> new ResponseStatusException(
-                                HttpStatus.BAD_REQUEST,
-                                "Paciente no encontrado con id " + pid
-                        ));
-                p.getMedicos().add(existente);
-                pacienteRepository.save(p);
-            });
-        }
+        // 2.b Añadir pacientes nuevos
+        deseados.stream()
+                .filter(p -> !actuales.contains(p))
+                .forEach(medico::addPaciente);
 
-        // 5) Guardar y devolver DTO actualizado
-        Medico updated = repository.save(existente);
-        return mapper.toDto(updated);
+        // 3. Actualizar campos básicos (sin pacientes)
+        // MapStruct ignora pacientes en updateEntityFromDto
+        mapper.updateEntityFromDto(dto, medico);
+
+        // 4. Guardar y devolver DTO
+        Medico saved = repository.save(medico);
+        return mapper.toDto(saved);
     }
-
-    // delete(id) queda heredado de AbstractService y basta para eliminar el médico
 }

@@ -18,6 +18,16 @@ public class Medico extends Usuario {
     private String numColegiado;
 
     @EqualsAndHashCode.Exclude
-    @ManyToMany(mappedBy = "medicos")
+    @ManyToMany(mappedBy = "medicos", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<Paciente> pacientes = new HashSet<>();
+
+    public void addPaciente(Paciente p) {
+        pacientes.add(p);
+        p.getMedicos().add(this);
+    }
+
+    public void removePaciente(Paciente p) {
+        pacientes.remove(p);
+        p.getMedicos().remove(this);
+    }
 }

@@ -2,6 +2,8 @@ package com.example.demo.controllers;
 
 import com.example.demo.dto.PacienteDTO;
 import com.example.demo.services.GenericService;
+import com.example.demo.services.IPacienteService;
+import com.example.demo.services.PacienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +16,11 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class PacienteController {
 
-    private final GenericService<PacienteDTO, Long> pacienteService;
+    private final IPacienteService service;
+    private final PacienteService pacienteService;
 
-    public PacienteController(GenericService<PacienteDTO, Long> pacienteService) {
+    public PacienteController(IPacienteService service, PacienteService pacienteService) {
+        this.service = service;
         this.pacienteService = pacienteService;
     }
 
@@ -37,12 +41,11 @@ public class PacienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PacienteDTO> update(
+    public PacienteDTO update(
             @PathVariable Long id,
             @Valid @RequestBody PacienteDTO dto
     ) {
-        PacienteDTO actualizado = pacienteService.update(id, dto);
-        return ResponseEntity.ok(actualizado);
+        return service.update(id, dto);
     }
 
     @DeleteMapping("/{id}")

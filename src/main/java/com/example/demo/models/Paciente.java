@@ -27,11 +27,21 @@ public class Paciente extends Usuario {
     @Column(nullable = false)
     private String direccion;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "paciente_medico",
             joinColumns = @JoinColumn(name = "paciente_id"),
             inverseJoinColumns = @JoinColumn(name = "medico_id")
     )
     private Set<Medico> medicos = new HashSet<>();
+
+    public void addMedico(Medico m) {
+        medicos.add(m);
+        m.getPacientes().add(this);
+    }
+
+    public void removeMedico(Medico m) {
+        medicos.remove(m);
+        m.getPacientes().remove(this);
+    }
 }
